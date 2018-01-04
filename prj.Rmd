@@ -1,0 +1,48 @@
+---
+title: "EDA"
+author: "Mamadou Diallo"
+date: "28 décembre 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+```
+
+
+```{r}
+red <- read.csv("wineQualityReds.csv")
+df <- tbl_df(red)
+names(df)
+```
+
+```{r}
+df <- subset( df, select = -X )
+summary(df)
+```
+
+```{r}
+library(ggplot2)
+library(GGally)
+library(scales)
+library(memisc)
+library(reshape2)
+library(RColorBrewer)
+```
+
+```{r}
+ggpairs(df,
+  lower = list(continuous = wrap("points", shape = I('.'))),
+  upper = list(combo = wrap("box", outlier.shape = I('.'))))
+```
+
+```{r}
+ggplot(aes(x = pH, y = quality,colour=alcohol), data = df) + 
+  geom_point(alpha = 0.5, size = 1) +
+  ggtitle('Quality')
+```
+
