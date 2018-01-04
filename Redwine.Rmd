@@ -23,16 +23,16 @@ output: html_document
 [ ] handling outliers
 
 [x] simplify model -> Quality: above 6
-[ ] Measure quality of the model: AUC
-[ ] training model vs testing model: 70% - 30%
+[ ] Measure quality of the model: AUC -> NO
+[x] training model vs testing model: 70% - 30%
 [ ] Use of cross validation
 example; https://www.kaggle.com/ash316/eda-to-prediction-dietanic
 [ ] use of confusion matrix or AUC
 Given the class imbalance ratio, one of the recommend measures for model evaluation is the Area Under the
 Precision-Recall Curve (AUPRC), since Confusion matrix accuracy is not meaningful for unbalanced
 classification
-[ ] handle unbalanced data
-techniques see end of the document
+[ ] handle unbalanced data/skewed classes 
+Precision-Recall is a useful measure of success of prediction when the classes are very imbalanced
 [ ] variable importance?
 [x] correlation among features?
 [ ] type of features?
@@ -51,6 +51,10 @@ library(reshape2) # TBD
 library(RColorBrewer) # TBD
 library(corrplot) # TBD
 library(caTools)
+library(rpart) # Decision tree
+library(rpart.plot) # plot decision tree
+library(caret)
+library(e1071)
 ```
 
 
@@ -79,8 +83,12 @@ dim(test)
 ```{r data_wrangling,echo=FALSE}
 # no use of feature X
 df <- subset( df, select = -X )
+train <- subset( train, select = -X )
+test<- subset( test, select = -X )
 # simplify model
 df$good<-ifelse(df$quality>6,1,0)
+train$good<-ifelse(train$quality>6,1,0)
+test$good<-ifelse(test$quality>6,1,0)
 # Analyse data
 str(df)
 # Data Summary
@@ -95,6 +103,8 @@ corrplot(cor(df))
 ```{r change quality into factor,echo=FALSE}
 df$quality = factor(df$quality)
 df$good = factor(df$good)
+train$quality = factor(train$quality)
+train$good = factor(train$good)
 ```
 ### Interpretation
 TBD
@@ -215,9 +225,9 @@ ggplot(data = df,mapping = aes(x = quality,y = volatile.acidity))+
 ```
 
 ```{r echo=FALSE, The_Matrix}
-ggpairs(df,
-  lower = list(continuous = wrap("points", shape = I('.'))),
-  upper = list(combo = wrap("box", outlier.shape = I('.'))))
+#ggpairs(df,
+#  lower = list(continuous = wrap("points", shape = I('.'))),
+#  upper = list(combo = wrap("box", outlier.shape = I('.'))))
 ```
 
 
@@ -227,6 +237,24 @@ ggplot(aes(x = pH, y = quality,colour=alcohol), data = df) +
   geom_point(alpha = 0.5, size = 1) +
   ggtitle('Quality vs PH')
 ```
+
+```{r}
+names(train)
+```
+```{r}
+train <- subset( train, select = -quality )
+test<- subset( test, select = -quality )
+```
+
+```{r Decision Tree model}
+tree.model <- rpart(good ~ ., data = train, method = "class")
+prp(tree.model) 
+```
+```{r}
+tree.predict <- predict(tree.model, test, type = "class")
+confusionMatrix(test$good, tree.predict)
+```
+
 ### Predictions
 1)Logistic Regression
 2)Support Vector Machines(Linear and radial)
@@ -246,8 +274,9 @@ weather matters
 the smell matters
 Age?
 Movie: Somm (2012) on Netflix -> done
-Source for handling unbalanced data:
+Source for handling unbalanced data/skewed classes:
 https://www.datasciencecentral.com/profiles/blogs/data-science-with-python-exploratory-analysis-with-movie-ratings?utm_content=buffer5a99e&utm_medium=social&utm_source=twitter.com&utm_campaign=buffer
 Techniques used for unbalanced data:
 Oversampling: 
 Under-sampling:
+
