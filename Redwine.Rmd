@@ -1,7 +1,7 @@
 ---
 title: "EDA"
 author: "Mamadou Diallo"
-date: "28 décembre 2017"
+date: "28 d?cembre 2017"
 output: html_document
 ---
 #### Variables
@@ -257,11 +257,11 @@ confusionMatrix(test$good, tree.predict)
 
 ### Predictions
 1)Logistic Regression
-2)Support Vector Machines(Linear and radial)
+2)Support Vector Machines
 3)Random Forest
 4)K-Nearest Neighbours
 5)Naive Bayes
-6)Decision Tree
+[x] Decision Tree
 
 
 ### Resources:
