@@ -1,23 +1,9 @@
 ---
-title: "EDA"
+title: "Explore and Summarize Data"
 author: "Mamadou Diallo"
 date: "28 december 2017"
 output: html_document
 ---
-#### Variables
-   1 - fixed acidity (tartaric acid - g / dm^3)
-   2 - volatile acidity (acetic acid - g / dm^3)
-   3 - citric acid (g / dm^3)
-   4 - residual sugar (g / dm^3)
-   5 - chlorides (sodium chloride - g / dm^3
-   6 - free sulfur dioxide (mg / dm^3)
-   7 - total sulfur dioxide (mg / dm^3)
-   8 - density (g / cm^3)
-   9 - pH
-   10 - sulphates (potassium sulphate - g / dm3)
-   11 - alcohol (% by volume)
-   Output variable (based on sensory data): 
-   12 - quality (score between 0 and 10)
 
 ### Questions and Issues
 [ ] handling outliers
@@ -38,11 +24,11 @@ Precision-Recall is a useful measure of success of prediction when the classes a
 [ ] type of features?
 [ ] create function for repetitive tasks: e.g. sampling of data
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r packages,echo=FALSE, message=FALSE, warning=FALSE}
+```{r packages, echo = FALSE, message = FALSE, warning = FALSE}
 library(dplyr) # data handling
 library(ggplot2) # visualization
 library(GGally) # TBD
@@ -61,8 +47,13 @@ library(gridExtra) # plot multiple plots in one graph
 library(ROCR) # ROC curves
 ```
 
+#### Dataset:
+This tidy data set contains 1,599 red wines with 11 variables on the chemical properties of the wine. At least 3 wine experts rated the quality of each wine, providing a rating between 0 (very bad) and 10 (very excellent).
 
-```{r Load_the_Data,echo=FALSE}
+#### Guiding question:
+Which chemical properties influence the quality of red wines?
+
+```{r Load_the_Data, echo = FALSE}
 # Load the data
 red <- read.csv("wineQualityReds.csv")
 # store it in data frame
@@ -70,47 +61,44 @@ df <- tbl_df(red)
 # List all column names
 names(df)
 ```
-```{r simplify model into univariate regression model}
-# simplify model
-df$good<-ifelse(df$quality>6,1,0)
-```
-
-```{r split into train and test data}
-set.seed(1011)
-msk <- sample.split(df$good,SplitRatio = 0.7)
-train <- subset(df,msk == T)
-test <- subset(df,msk == F)
-```
-
-```{r train table}
-table(train$good)
-# size of the training dataset
-dim(train)
-```
-
-```{r test table}
-table(test$good)
-# size of test dataset
-dim(test)
-```
-
-```{r check ratio}
-14/(14+480)
-```
-
-```{r data summary,echo=FALSE}
-# no use of feature X: it is an index
-df <- subset( df, select = -X )
-train <- subset( train, select = -X )
-test<- subset( test, select = -X )
+```{r data summary,echo = FALSE}
 # Analyse data
 str(df)
 # Data Summary
 summary(df)
 ```
-```{r}
-209/(209+1311)
+
+```{r simplify model into univariate regression model, echo = FALSE}
+# no use of feature X: it is an index
+df <- subset(df, select = -X)
+# simplify model
+df$good<-ifelse(df$quality > 6, 1, 0)
 ```
+
+```{r split into train and test data,echo = FALSE}
+set.seed(1011)
+msk <- sample.split(df$good, SplitRatio = 0.7)
+train <- subset(df, msk == T)
+test <- subset(df, msk == F)
+```
+
+```{r train table, echo = FALSE}
+table(train$good)
+# size of the training dataset
+dim(train)
+```
+
+```{r test table, echo = FALSE}
+table(test$good)
+# size of test dataset
+dim(test)
+```
+
+```{r check ratio, echo = FALSE}
+14 / (14 + 480)
+209 / (209 + 1311)
+```
+
 
 ### deal with outliers
 ```{r}
@@ -120,13 +108,14 @@ summary(df)
 ```
 
 
-```{r Heatmap}
+```{r Heatmap, echo = FALSE}
 #Correlation Heatmap of Variables
-corrplot(cor(df))
+corrplot(cor(df),title = "Heatmap")
 ```
+
 ### Interpretation
 
-good and alcohol have a linear relationship (increasing).
+good and alcohol have a linear relationship (increasing). It is Interesting we find correlation between the dependant variable and an independant variable. It is a good thing since we're trying to predict the independant variable from the independant variables
 
 fixed acidity and citric acidity have a linear relationship (increasing). 
 
@@ -136,285 +125,69 @@ fixed acidity and density have a linear relationship (increasing).
 
 volatile acidity and citric acidity have a linear relationship (decreasing).
 
-free.sulfur.dioxide and total.sulfure.dioxide have a significant linear relationship.
+free.sulfur.dioxide and total.sulfure.dioxide have a linear relationship.
 
 Since it is not suffucient to look at the correlation numbers, we need to look at the graphs
 
-```{r use of factors in train dataset,echo=FALSE}
-# convert into factor for quality feature for the global dataset
-df$quality = factor(df$quality,ordered = T)
-#convert into factor for good feature for the global dataset
-df$good = factor(df$good,ordered = T)
-# convert into factor for quality feature for the train dataset
-train$quality = factor(train$quality,ordered = T)
-# convert into factor for quality feature for the train dataset
-train$good = factor(train$good,ordered = T)
-```
 ### Interpretation
 TBD
-```{r Histograms of each continuous features for the global dataset}
-hist.data.frame(df[,1:11])
-```
-
-```{r Discretisation of alcohol}
-# compute quantiles
-q <- quantile(df$alcohol,seq(0,1,by = 0.1))
-# the 2 wines belong to the first interval: make them part of the first interval  
-q[1]=q[1]-0.1
-# create intervals open to the left and closed to the right
-qalcohol <- cut(df$alcohol,q)
-tab <- table(qalcohol,df$good)
-prop.table(tab,1)
-```
-```{r}
-#q[1]
-```
-```{r}
-table(df$alcohol)
-```
-
-```{r}
-barplot(t(prop.table(tab,1)[,2]),ylim=c(0,0.7),las=3,main="Alcohol",ylab="rate of good wine",density = 0)
-# plot average wine quality
-abline(h=0.1357,lty=2)
-```
-
-```{r discretisation of volatile acidity}
-# compute quantiles
-q <- quantile(df$volatile.acidity,seq(0,1,by = 0.1))
-# the 2 wines belong to the first interval: make them part of the first interval  
-q[1]=q[1]-0.01
-# create intervals open to the left and closed to the right
-qvolatile <- cut(df$volatile.acidity,q)
-tab <- table(qvolatile,df$good)
-prop.table(tab,1)
-```
-
-```{r}
-#q[1]
-#table(df$volatile.acidity)
-```
-
-```{r}
-barplot(t(prop.table(tab,1)[,2]),ylim=c(0,0.7),las=3,main="volatile.acidity",ylab="rate of good wine",density = 0)
-# plot average wine quality
-abline(h=0.1357,lty=2)
-```
-```{r discretisation of fixed acidity}
-# compute quantiles
-q <- quantile(df$fixed.acidity,seq(0,1,by = 0.1))
-# the 2 wines belong to the first interval: make them part of the first interval  
-q[1]=q[1]-0.1
-# create intervals open to the left and closed to the right
-qfixed <- cut(df$fixed.acidity,q)
-tab <- table(qfixed,df$good)
-prop.table(tab,1)
-```
-
-```{r}
-#q[1]
-#table(df$fixed.acidity)
-```
-
-```{r}
-barplot(t(prop.table(tab,1)[,2]),ylim=c(0,0.7),las=3,main="fixed acidity",ylab="rate of good wine",density = 0)
-# plot average wine quality
-abline(h=0.1357,lty=2)
-```
-
-```{r discretisation of sulfur dioxide} 
-# compute quantiles
-q <- quantile(df$total.sulfur.dioxide,seq(0,1,by = 0.1))
-# the 2 wines belong to the first interval: make them part of the first interval  
-q[1]=q[1]-1
-# create intervals open to the left and closed to the right
-qtotalsulfur <- cut(df$total.sulfur.dioxide,q)
-tab <- table(qtotalsulfur,df$good)
-prop.table(tab,1)
-```
-
-```{r}
-#q[1]
-#table(df$total.sulfur.dioxide)
+```{r Histograms of each continuous features for the global dataset, echo = FALSE}
+hist.data.frame(df[, 1:11],mtitl = "Histograms of each continuous features")
 ```
 
 
 
-```{r}
-barplot(t(prop.table(tab,1)[,2]),ylim=c(0,0.7),las=3,main="total.sulfur.dioxide",ylab="rate of good wine",density = 0)
-# plot average wine quality
-abline(h=0.1357,lty=2)
+```{r Discretizing continuous features, echo = FALSE}
+discreteContFeature <- function(featureTable,featureName, start = 0.01) {
+  # compute quantiles
+  q <- quantile(featureTable,seq(0, 1, by = 0.1))
+  # the 2 wines belong to the first interval: make them part of the first interval  
+  q[1] = q[1] - start
+  #print(table(featureTable))
+  # create intervals open to the left and closed to the right
+  qvar <- cut(featureTable, q)
+  tab <- table(qvar, df$good)
+  # ploting the bar plot
+  t1 = prop.table(tab, 1)[, 2]
+  names(t1) = c("NOK", "OK")
+  #  p = barplot(t(t1),ylim=c(0,0.7),las=3,main=featureName,ylab="rate of good wine",density = 0)
+  p = barplot(t(t1),las = 3, main = featureName, ylab = "rate of good wine", density = 0)
+  # plot average wine quality
+  abline(h = 0.1357, lty = 2)
+
+  #return(prop.table(tab,1))
+  return("Plot done")
+} 
 ```
 
-```{r discretisation of free sulfur dioxide}
-# compute quantiles
-q <- quantile(df$free.sulfur.dioxide,seq(0,1,by = 0.1))
-# the 2 wines belong to the first interval: make them part of the first interval  
-q[1]=q[1]-1
-# create intervals open to the left and closed to the right
-qfree <- cut(df$free.sulfur.dioxide,q)
-tab <- table(qfree,df$good)
-prop.table(tab,1)
-```
-
-```{r}
-#q[1]
-#table(df$free.sulfur.dioxide)
-```
-
-```{r}
-barplot(t(prop.table(tab,1)[,2]),ylim=c(0,0.7),las=3,main="free sulfur dioxide",ylab="rate of good wine",density = 0)
-# plot average wine quality
-abline(h=0.1357,lty=2)
-```
-
-```{r discretisation of density}
-# compute quantiles
-q <- quantile(df$density,seq(0,1,by = 0.1))
-# the 2 wines belong to the first interval: make them part of the first interval  
-q[1]=q[1]-0.0001
-# create intervals open to the left and closed to the right
-qdensity <- cut(df$density,q)
-tab <- table(qdensity,df$good)
-prop.table(tab,1)
-```
-
-```{r}
-#q[1]
-#table(df$density)
-```
-```{r}
-barplot(t(prop.table(tab,1)[,2]),ylim=c(0,0.7),las=3,main="density",ylab="rate of good wine",density = 0)
-# plot average wine quality
-abline(h=0.1357,lty=2)
+```{r Discretize features, echo = FALSE}
+discreteContFeature(df$alcohol, "Alcool", 0.01)
+discreteContFeature(df$volatile.acidity, "Volatile Acidity", 0.01)
+discreteContFeature(df$fixed.acidity, "Fixed Acidity", 0.01)
+discreteContFeature(df$total.sulfur.dioxide, "Total Sulfur Dioxide", 0.01)
+discreteContFeature(df$density, "Density", 0.01)
+discreteContFeature(df$sulphates, "Sulphates", 0.01)
+discreteContFeature(df$citric.acid, "citric acid", 0.01)
+discreteContFeature(df$chlorides,"chlorides", 0.01)
 ```
 
 
-```{r discretisation of sulfates}
-# compute quantiles
-q <- quantile(df$sulphates,seq(0,1,by = 0.1))
-# the 2 wines belong to the first interval: make them part of the first interval  
-q[1]=q[1]-0.01
-# create intervals open to the left and closed to the right
-qsulphates <- cut(df$sulphates,q)
-tab <- table(qsulphates,df$good)
-prop.table(tab,1)
-```
-
-```{r}
-#q[1]
-#table(df$sulphates)
-```
-```{r}
-barplot(t(prop.table(tab,1)[,2]),ylim=c(0,0.7),las=3,main="sulphates",ylab="rate of good wine",density = 0)
-# plot average wine quality
-abline(h=0.1357,lty=2)
-```
-```{r discretisation of pH}
-# compute quantiles
-q <- quantile(df$pH,seq(0,1,by = 0.1))
-# the 2 wines belong to the first interval: make them part of the first interval  
-q[1]=q[1]-0.01
-# create intervals open to the left and closed to the right
-qpH <- cut(df$pH,q)
-tab <- table(qpH,df$good)
-prop.table(tab,1)
-```
-
-```{r}
-#q[1]
-#table(df$pH)
-```
-
-```{r}
-barplot(t(prop.table(tab,1)[,2]),ylim=c(0,0.7),las=3,main="pH",ylab="rate of good wine",density = 0)
-# plot average wine quality
-abline(h=0.1357,lty=2)
-```
-
-```{r discretisation of citric acid}
-# compute quantiles
-q <- quantile(df$citric.acid,seq(0,1,by = 0.1))
-# the 2 wines belong to the first interval: make them part of the first interval  
-q[1]=q[1]-0.01
-# create intervals open to the left and closed to the right
-qcitric <- cut(df$citric.acid,q)
-tab <- table(qcitric,df$good)
-prop.table(tab,1)
-```
-
-```{r}
-#q[1]
-#table(df$citric.acid)
-```
-
-```{r}
-barplot(t(prop.table(tab,1)[,2]),ylim=c(0,0.7),las=3,main="citric.acid",ylab="rate of good wine",density = 0)
-# plot average wine quality
-abline(h=0.1357,lty=2)
-```
-
-```{r discretisation of chlorides}
-# compute quantiles
-q <- quantile(df$chlorides,seq(0,1,by = 0.1))
-# the 2 wines belong to the first interval: make them part of the first interval  
-q[1]=q[1]-0.01
-# create intervals open to the left and closed to the right
-qchlorides <- cut(df$chlorides,q)
-tab <- table(qchlorides,df$good)
-prop.table(tab,1)
-```
-
-```{r}
-#q[1]
-#table(df$chlorides)
-```
-
-
-```{r}
-barplot(t(prop.table(tab,1)[,2]),ylim=c(0,0.7),las=3,main="chlorides",ylab="rate of good wine",density = 0)
-# plot average wine quality
-abline(h=0.1357,lty=2)
-```
-
-```{r discretisation of residual sugar}
-# compute quantiles
-q <- quantile(df$residual.sugar,seq(0,1,by = 0.1))
-# the 2 wines belong to the first interval: make them part of the first interval  
-q[1]=q[1]-0.1
-# create intervals open to the left and closed to the right
-qresidual <- cut(df$residual.sugar,q)
-tab <- table(qresidual,df$good)
-prop.table(tab,1)
-```
-
-
-```{r}
-#q[1]
-#table(df$residual.sugar)
-```
-
-
-```{r}
-barplot(t(prop.table(tab,1)[,2]),ylim=c(0,0.7),las=3,main="residual sugar",ylab="rate of good wine",density = 0)
-# plot average wine quality
-abline(h=0.1357,lty=2)
-```
-
-```{r Histogram Quality feature,echo=FALSE}
+```{r Histogram Quality feature, echo = FALSE}
 table(df$quality)
-ggplot(data = df,aes(x = quality))+
-  geom_histogram(stat = "count",color='black',fill='orange')
+ggplot(data = df,aes(x = quality)) +
+  geom_histogram(stat = "count", color = 'black', fill = 'orange') +
+  ggtitle("Histogram Quality feature")
 ```
-```{r Histogram good feature}
+```{r Histogram good feature, echo = FALSE}
 table(df$good)
-ggplot(data = df,aes(x = good))+
-  geom_histogram(stat = "count",color='black',fill='orange')
+ggplot(data = df,aes(x = good)) +
+  geom_histogram(stat = "count", color = 'black', fill = 'orange') +
+  ggtitle("Histogram good feature")
 ```
 
 
-```{r}
-by(df$volatile.acidity,df$good,summary)
+```{r echo = FALSE}
+by(df$volatile.acidity,df$good, summary)
 ```
 
 > **Tip**: The dependant variable is "quality" as an ordinal variable
@@ -423,47 +196,54 @@ This is a classification problem.
 
 Issue: the data is not balanced in wine quality.
 
-```{r histogram of volatile acidity for training dataset}
-ggplot(data = train,aes(x = volatile.acidity))+
-  geom_histogram(colour='black',fill='orange',bins=30)+
-  scale_x_continuous()+
-  facet_wrap(~good,ncol = 1,scales = "free_y")
+```{r histogram of volatile acidity for training dataset, echo = FALSE}
+ggplot(data = train,aes(x = volatile.acidity)) +
+  geom_histogram(colour = 'black', fill = 'orange', bins = 30) +
+  scale_x_continuous() +
+  facet_wrap(~good,ncol = 1, scales = "free_y") +
+  ggtitle("histogram of volatile acidity")
 ```
 
-```{r histogram of volatile acidity}
-ggplot(data = df,aes(x = volatile.acidity))+
-  geom_histogram(bins=30,color='black',fill='orange')+
-  scale_x_continuous()
+```{r histogram of volatile acidity, echo = FALSE}
+ggplot(data = df,aes(x = volatile.acidity)) +
+  geom_histogram(bins = 30, color = 'black', fill = 'orange') +
+  scale_x_continuous() +
+  ggtitle("histogram of volatile acidity")
 ```
-```{r histogram of volatile acidity log-normal}
-ggplot(data = df,aes(x = volatile.acidity))+
-  geom_histogram(bins=30,color='black',fill='orange')+
-  scale_x_log10()
+```{r histogram of volatile acidity log-normal, echo = FALSE}
+ggplot(data = df,aes(x = volatile.acidity)) +
+  geom_histogram(bins = 30, color = 'black', fill = 'orange') +
+  scale_x_log10() +
+  ggtitle("histogram of volatile acidity log-normal")
 ```
 
 
-```{r histogram of citric acid}
-ggplot(data = df,aes(x = citric.acid))+
-  geom_histogram(bins=50,color='black',fill='orange')+
-  scale_x_continuous()+
-  facet_wrap(~good,ncol = 1,scales = "free_y")
+```{r histogram of citric acid, echo = FALSE}
+ggplot(data = df,aes(x = citric.acid)) +
+  geom_histogram(bins = 50, color = 'black', fill = 'orange') +
+  scale_x_continuous() +
+  facet_wrap(~good,ncol = 1,scales = "free_y") + 
+  ggtitle("histogram of citric acid")
 ```
-```{r Histogram of residual sugar}
-ggplot(data = df,aes(x = residual.sugar))+
-  geom_histogram(bins=30,color='black',fill='orange')+
-  scale_x_continuous()
+```{r Histogram of residual sugar, echo = FALSE}
+ggplot(data = df,aes(x = residual.sugar)) +
+  geom_histogram( bins = 30, color = 'black', fill = 'orange') +
+  scale_x_continuous() +
+  ggtitle("Histogram of residual sugar")
 ```
-```{r histogram of residual sugar log-normal}
-ggplot(data = df,aes(x = residual.sugar))+
-  geom_histogram(color='black',fill='orange')+
-  scale_x_log10()
+```{r histogram of residual sugar log-normal, echo = FALSE}
+ggplot(data = df,aes(x = residual.sugar)) +
+  geom_histogram(color = 'black', fill = 'orange') +
+  scale_x_log10() + 
+  ggtitle("histogram of residual sugar log-normal")
 ```
-```{r histogram of residual sugar}
-ggplot(data = df,aes(x = residual.sugar))+
-  geom_histogram(color='black',fill='orange')+
-  scale_x_continuous()
+```{r histogram of residual sugar, echo = FALSE}
+ggplot(data = df,aes(x = residual.sugar)) +
+  geom_histogram(color = 'black', fill = 'orange') +
+  scale_x_continuous() +
+  ggtitle("histogram of residual sugar")
 ```
-```{r}
+```{r echo = FALSE}
 ggplot(aes(x = residual.sugar, y = ..count../sum(..count..)),
        data = df) +
   geom_freqpoly() +
@@ -473,32 +253,35 @@ ggplot(aes(x = residual.sugar, y = ..count../sum(..count..)),
 ```
 
 
-```{r boxplot of good pH vs good }
-ggplot(data = df,mapping = aes(x = good,y = pH))+
+```{r boxplot of good pH vs good, echo = FALSE}
+ggplot(data = df, mapping = aes(x = good, y = pH)) +
   geom_boxplot()
 ```
 
-```{r Histogram of pH,echo=FALSE}
+```{r Histogram of pH,echo = FALSE}
 ggplot(data = df,aes(x = pH))+
-  geom_histogram(colour='black',fill='orange')+
-  scale_x_continuous()+
-  facet_wrap(~good,ncol = 1)
+  geom_histogram(colour = 'black', fill = 'orange') +
+  scale_x_continuous() +
+  facet_wrap(~good, ncol = 1) +
+  ggtitle("Histogram of pH")
 ```
 
-```{r boxplot of density vs good}
-ggplot(data = df,mapping = aes(x = good,y = density))+
-  geom_boxplot()
-```
-
-
-```{r boxplot of citric acid vs goods}
-ggplot(data = df,mapping = aes(x = good,y = citric.acid))+
-  geom_boxplot()
+```{r boxplot of density vs good, echo = FALSE}
+ggplot(data = df,mapping = aes(x = good, y = density)) +
+  geom_boxplot() +
+  ggtitle("boxplot of density vs good")
 ```
 
 
+```{r boxplot of citric acid vs good, echo = FALSE}
+ggplot(data = df, mapping = aes(x = good, y = citric.acid)) +
+  geom_boxplot() +
+  ggtitle("boxplot of citric acid vs good")
+```
 
-```{r echo=FALSE, The_Matrix}
+
+
+```{r echo = FALSE, The_Matrix, echo = FALSE}
 #ggpairs(df,
 #  lower = list(continuous = wrap("points", shape = I('.'))),
 #  upper = list(combo = wrap("box", outlier.shape = I('.'))))
@@ -506,76 +289,71 @@ ggplot(data = df,mapping = aes(x = good,y = citric.acid))+
 
 
 ### Study 2 variables
-```{r scatter plot citric acid vs fixed acidity}
+```{r scatter plot citric acid vs fixed acidity, echo = FALSE}
 ggplot(aes(x = fixed.acidity, y = citric.acid), data = df) +
-  geom_point(alpha=1/10,
-             position=position_jitter(height = 0),
-             color='red')+
-  geom_line(stat = 'summary',fun.y=mean)+
-  geom_smooth(method = "lm",color="blue")
+  geom_point(alpha = 1/10,
+             position = position_jitter(height = 0),
+             color = 'red') +
+  geom_line(stat = 'summary', fun.y = mean) +
+  geom_smooth(method = "lm", color = "blue") +
+  ggtitle("scatter plot citric acid vs fixed acidity")
 ```
 #### Intepretation:
 the fixed acidity is increasing with the citric acid concentration
+Correlation = TBD
 
-```{r scatter plot fixed acidity vs pH}
+```{r scatter plot fixed acidity vs pH, echo = FALSE}
 ggplot(aes(x = fixed.acidity, y = pH), data = df) +
-  geom_point(alpha=1/10,
-             position=position_jitter(height = 0),
-             color='red')+
-  geom_line(stat = 'summary',fun.y=mean)+
-  geom_smooth(method = "lm",color="blue")
+  geom_point(alpha = 1/10,
+             position = position_jitter(height = 0),
+             color = 'red') +
+  geom_line(stat = 'summary', fun.y = mean) +
+  geom_smooth(method = "lm", color = "blue") +
+  ggtitle("scatter plot fixed acidity vs pH")
 ```
 #### Interpretation
 The fixed acidity is increasing as the pH is decreasing
 
-```{r scatter plot fixed acidity vs density}
+Correlation = TBD
+
+```{r scatter plot fixed acidity vs density, echo = FALSE}
 # Create a scatterplot of fixed acidity vs density
 # and omit the top 5% of fixed acidity vs density
 # values.
 ggplot(aes(x = fixed.acidity, y = density), data = df) +
-  geom_point(alpha=1/10,
-             position=position_jitter(height = 0),
-             color='red')+
-  xlim(4.60,quantile(df$fixed.acidity,0.95))+
-  ylim(0.99,quantile(df$density,0.95))+
-  geom_line(stat = 'summary',fun.y=mean)+
-  geom_smooth(method = "lm",color="blue")
+  geom_point(alpha = 1/10,
+             position = position_jitter(height = 0),
+             color = 'red') +
+  xlim(4.60, quantile(df$fixed.acidity, 0.95)) +
+  ylim(0.99, quantile(df$density, 0.95)) +
+  geom_line(stat = 'summary', fun.y = mean) +
+  geom_smooth(method = "lm",color = "blue") +
+  ggtitle("scatter plot fixed acidity vs pH")
 ```
 #### Interpretation:
 fixed.acidity is increasing with density
+Correlation = TBD
 
-```{r scatter plot volatile acidity vs citric acid}
-# Create a scatterplot of volatile.acidity vs citric acid concentration
-# and omit the top 5% of volatile acidity and citric acid concentration
-# values.
-ggplot(aes(x = volatile.acidity, y = citric.acid), data = df) +
-  geom_point(alpha=1/10,
-             position=position_jitter(height = 0),
-             color='red')+
-  xlim(0.12,quantile(df$volatile.acidity,0.95))+
-  ylim(0,quantile(df$citric.acid,0.95))+
-  geom_line(stat = 'summary',fun.y=mean)+
-  geom_smooth(method = "lm",color="blue")
-```
 
-```{r scatter plot free sulfur dioxide vs total sulfur dioxide}
+```{r scatter plot free sulfur dioxide vs total sulfur dioxide, echo = FALSE}
 # Create a scatterplot of free sulfure dioxide vs total sulfur dioxide
 # and omit the top 5% of free sulfure dioxide vs total sulfur dioxide
 # values.
 ggplot(aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide), data = df) +
-  geom_point(alpha=1/10,
-             position=position_jitter(height = 0),
-             color='red')+
-  xlim(1,quantile(df$free.sulfur.dioxide,0.95))+
-  ylim(6,quantile(df$total.sulfur.dioxide,0.95))+
-  geom_line(stat = 'summary',fun.y=mean)+
-  geom_smooth(method = "lm",color="blue")
+  geom_point(alpha = 1/10,
+             position = position_jitter(height = 0),
+             color = 'red') +
+  xlim(1, quantile(df$free.sulfur.dioxide, 0.95)) +
+  ylim(6,quantile(df$total.sulfur.dioxide,0.95)) +
+  geom_line(stat = 'summary',fun.y=mean) +
+  geom_smooth(method = "lm", color = "blue") +
+  ggtitle("scatter plot free sulfur dioxide vs total sulfur dioxide")
 ```
 #### Interpretation
 free.sulfur.dioxide increases with total.sulfur.dioxide
+Correlation = TBD
 
-
-```{r group by free sulfur dioxide}
+```{r group by free sulfur dioxide, echo = FALSE}
 df.by_free_sulfur <- df %>% group_by(free.sulfur.dioxide) %>%
   summarise(total_sulfur_mean = mean(total.sulfur.dioxide),
             total_sulfur_median = median(total.sulfur.dioxide),
@@ -590,38 +368,30 @@ ggplot(aes(x = free.sulfur.dioxide, y = total_sulfur_mean), data = df.by_free_su
 ```
 
 
-```{r scatter plot volatile acidity vs citric acid}
+```{r scatter plot volatile acidity vs citric acid, echo = FALSE}
 ggplot(aes(x = volatile.acidity, y = citric.acid), data = df) +
-  geom_point(alpha=1/10,
-             color='red')+
-  geom_line(stat = 'summary',fun.y=mean)+
-  geom_smooth(method = "lm",color="blue")
+  geom_point(alpha = 1/10,
+             color = 'red') +
+  geom_line(stat = 'summary', fun.y = mean) +
+  geom_smooth(method = "lm",color = "blue") +
+  ggtitle("scatter plot volatile acidity vs citric acid")
 ```
 #### Interpretation
 the volatile acidity decreases as citric acid increase
-
-```{r scatter plot fixed acidity vs density}
-ggplot(aes(x = fixed.acidity, y = density), data = df) +
-  geom_point(alpha=1/10,
-             color='red')+
-  geom_line(stat = 'summary',fun.y=mean)+
-  geom_smooth(method = "lm",color="blue")
-```
-#### Interpretation
-fixed.acidity is increasing with density
+Correlation = TBD
 
 
 ```{r}
 names(train)
 ```
-```{r keeping most significant features}
-train <- subset(train, select = c(pH,volatile.acidity,citric.acid,total.sulfur.dioxide,sulphates,alcohol,good))
-test<- subset( test, select = c(pH,volatile.acidity,citric.acid,total.sulfur.dioxide,sulphates,alcohol))
+```{r keeping most significant features, echo = FALSE}
+#train <- subset(train, select = c(pH, volatile.acidity, citric.acid, total.sulfur.dioxide, sulphates, alcohol, good))
+#test<- subset( test, select = c(pH, volatile.acidity, citric.acid, total.sulfur.dioxide, sulphates, alcohol))
 ```
 
 
 ### Decision Tree model
-```{r Decision Tree model}
+```{r Decision Tree model, echo = FALSE}
 tree.model <- rpart(good ~ ., data = train, method = "class")
 prp(tree.model) 
 ```
@@ -636,17 +406,17 @@ Baseline model accuracy: if we would predict that all wine are not good (most fr
 We'll try to beat this accuracy with the logistical model
 ```{r}
 table(df$good)
-1382/(1382+217)
+1382 / (1382 + 217)
 ```
 ```{r Log model}
-wineLog1 <- glm(good ~ alcohol, data = train,family =binomial)
+wineLog1 <- glm(good ~ alcohol, data = train, family = binomial)
 ```
 ```{r coefficients}
 summary(wineLog1)
 ```
 
 ```{r}
-wineLog2 <- glm(good ~ alcohol+volatile.acidity, data = train,family =binomial)
+wineLog2 <- glm(good ~ alcohol + volatile.acidity, data = train, family =binomial)
 ```
 
 ```{r}
@@ -654,40 +424,67 @@ summary(wineLog2)
 ```
 
 ```{r}
-wineLog3 <- glm(good ~ alcohol+volatile.acidity+citric.acid, data = train,family =binomial)
+wineLog3 <- glm(good ~ alcohol + volatile.acidity + citric.acid, data = train, family =binomial)
 summary(wineLog3)
 ```
 
 ```{r}
-wineLog4 <- glm(good ~ alcohol+volatile.acidity+chlorides+total.sulfur.dioxide+sulphates+fixed.acidity+residual.sugar, data = train,family =binomial)
+wineLog4 <- glm(good ~ alcohol + volatile.acidity + total.sulfur.dioxide + sulphates, data = train, family = binomial)
 summary(wineLog4)
 ```
 ### Interpretation
 correlations !!
 
 ```{r Prediction}
-predTrain4 <- predict(wineLog4,type="response")
+predTrain4 <- predict(wineLog4, type = "response")
 ```
 ```{r}
 summary(predTrain4)
 ```
 ```{r average predictions for each of the true outcomes}
-tapply(predTrain4,train$good,mean)
+tapply(predTrain4, train$good, mean)
 ```
 ```{r}
-table(train$good,predTrain4 > 0.2)
+table(train$good, predTrain4 > 0.2)
 ```
 ```{r}
-ROCRpred <- prediction(predTrain4,train$good)
+ROCRpred <- prediction(predTrain4, train$good)
 ```
 ```{r}
-ROCRperf <- performance(ROCRpred,"tpr","fpr")
+ROCRperf <- performance(ROCRpred, "tpr", "fpr")
 ```
 ```{r}
 plot(ROCRperf)
 ```
 ```{r}
-plot(ROCRperf,colorize=T)
+plot(ROCRperf, colorize = T)
+```
+```{r}
+names(train)
+```
+
+```{r}
+m1 <- lm(good ~ alcohol, data = train)
+m2 <- update(m1, ~ . + sulphates)
+m3 <- update(m2, ~ . + density)
+m4 <- update(m3, ~ . + residual.sugar)
+m5 <- update(m4, ~ . + volatile.acidity)
+m6 <- update(m5, ~ . + chlorides)
+m7 <- update(m6, ~ . + fixed.acidity)
+m8 <- update(m7, ~ . + citric.acid)
+m9 <- update(m8, ~ . + free.sulfur.dioxide)
+m10 <- update(m9, ~ . + pH)
+m11 <- update(m10, ~ . + total.sulfur.dioxide)
+mtable(m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11)
+```
+## Interpretation
+density coefficient flipped from positive to negative 
+
+```{r}
+ggplot(aes(x = citric.acid, y = fixed.acidity,color = factor(good)), data = df) +
+  geom_point() +
+  geom_smooth(method='lm', se=FALSE) +
+  ggtitle("scatter plot citric acid vs fixed acidity")
 ```
 
 
@@ -700,6 +497,13 @@ plot(ROCRperf,colorize=T)
 
 
 ### Resources:
+
+Data set location:
+https://www.google.com/url?q=https://s3.amazonaws.com/udacity-hosted-downloads/ud651/wineQualityReds.csv&sa=D&ust=1515532515282000&usg=AFQjCNHpiAAlB8pRni-QOCbCQLSZ5yYCkw
+
+coding in R
+R Graphics Cookbook - Winston Chang
+
 https://www.kaggle.com/grosvenpaul/beginners-guide-to-eda-and-random-forest-using-r
 https://www.kaggle.com/meepbobeep/intro-to-regression-and-classification-in-r
 https://www.youtube.com/watch?v=jlOj2THP4xc
@@ -720,4 +524,22 @@ Independant variables: Age, Weather - Average growing season Temperature, Harves
 Techniques used for unbalanced data:
 Oversampling: 
 Under-sampling:
+
+Repo1:
+https://github.com/GeorgeVince/DAND_White-Wine-EDA/blob/master/white_wine_analysis.html
+
+
+REFLECTIONS:
+struggles, 
+unbalanced data
+build model with minimum features
+validation of the model
+multicolinearity in the model - two independant variables significantly correlated. We have to remove one variable one at a time.
+
+successes,
+factors influencing the quality of wine
+
+and ideas for future exploration
+take into account of independant features such as: Age, Weather
+other prediction models
 
